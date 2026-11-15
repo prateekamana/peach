@@ -16,18 +16,40 @@ int main() {
     //Nearest Neighbor filter for our canvas, maybe to handle upscaling !DOUBT
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
-    //Rect properties
-    float rotation = 0.0f;
+    //Head properties
+
+    Vector2 headPos = {CANVAS_W/2, CANVAS_H/2};
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
         // Draw at small canvas resolution first
         BeginTextureMode(canvasRenderTexture);
-            ClearBackground(WHITE);
-            Rectangle rect = { CANVAS_W / 2.0f, CANVAS_H/2.0f, 50, 50 };            
-            Vector2 origin = { rect.width/2, rect.height/2 };
-            DrawRectanglePro(rect, origin, rotation, RED);
-            rotation += 1.0f;
+            ClearBackground(BLACK);
+            Vector2 pointerPos = {
+                GetMousePosition().x / SCALE - 5,
+                GetMousePosition().y / SCALE - 5
+            };
+
+            float diffPointerPosToHeadPosX = pointerPos.x - headPos.x;
+            float diffPointerPosToHeadPosY = pointerPos.y - headPos.y;
+
+
+            if(diffPointerPosToHeadPosX > 0){
+                headPos.x += 1;
+            } else {
+                headPos.x -= 1;
+            }
+
+            if(diffPointerPosToHeadPosY > 0){
+                headPos.y += 1;
+            } else {
+                headPos.y -= 1;
+            }
+            DrawPixel(headPos.x, headPos.y, WHITE);
+            DrawPixel(pointerPos.x, pointerPos.y, RED);
+
+
+
         EndTextureMode();
 
         // Draw Upscaled Canvas
