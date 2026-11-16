@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<math.h>
 #include "raylib.h"
 
 // NES Resolution for canvas
@@ -17,38 +18,39 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     //Head properties
-
     Vector2 headPos = {CANVAS_W/2, CANVAS_H/2};
+    float speed = 0.75f;
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
         // Draw at small canvas resolution first
         BeginTextureMode(canvasRenderTexture);
             ClearBackground(BLACK);
+
+            // Get correct position of mouse as canvas is SCALED down
             Vector2 pointerPos = {
                 GetMousePosition().x / SCALE - 5,
                 GetMousePosition().y / SCALE - 5
             };
 
-            float diffPointerPosToHeadPosX = pointerPos.x - headPos.x;
-            float diffPointerPosToHeadPosY = pointerPos.y - headPos.y;
-
-
-            if(diffPointerPosToHeadPosX > 0){
-                headPos.x += 1;
-            } else {
-                headPos.x -= 1;
-            }
-
-            if(diffPointerPosToHeadPosY > 0){
-                headPos.y += 1;
-            } else {
-                headPos.y -= 1;
-            }
+            // Draw current posiitions of head and pointer
             DrawPixel(headPos.x, headPos.y, WHITE);
             DrawPixel(pointerPos.x, pointerPos.y, RED);
 
+            // Calculate difference of header and pointer pos and distance
+            // Thanks Pythagoras 
+            float dY = pointerPos.y - headPos.y;
+            float dX = pointerPos.x - headPos.x;
+            float dist = sqrtf(dY*dY + dX*dX);
 
+            // update head position by normalizing the distance vector 
+            headPos.x += (dX/dist) * speed;
+            headPos.y += (dY/dist) * speed;
+
+            //!LOGGING: can leave these commented for now
+            // printf("dist = %f \n", dist);
+            // printf("dy: %f, dx: %f\n", dY, dX);
+            // printf("headPos.x: %f, headPos.y: %f\n", headPos.x, headPos.y);
 
         EndTextureMode();
 
