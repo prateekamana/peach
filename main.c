@@ -39,6 +39,66 @@ float nodeWidths[18] = {
     0.85f, //18
 };
 
+// Function to update rope nodes movement with respect to a target point 
+void updateRopeNodes(Rope* rope, Vector2 targetPoint){
+    for(int i=0; i<rope->nodesAmount; i++){
+        if(i==0){
+            // HEAD NODE
+            // Calculate difference of HEADER and POINTER pos and distance
+            Vector2 headNode = rope->nodes[i];
+
+            float dY = targetPoint.y - headNode.y;
+            float dX = targetPoint.x - headNode.x;
+            float dist = sqrtf(dY*dY + dX*dX);
+
+            rope->nodes[0] = (Vector2) {
+                headNode.x + (dX/dist)*rope->speed,
+                headNode.y + (dY/dist)*rope->speed    
+            };
+        } else {
+            // CHILDREN NODES
+            Vector2 currentNode = rope->nodes[i];
+            Vector2 previousNode = rope->nodes[i-1];
+
+            float dY = previousNode.y - currentNode.y;
+            float dX = previousNode.x - currentNode.x;
+            float dist = sqrtf(dY*dY + dX*dX);
+
+            if(dist > rope->linkLength){
+                rope->nodes[i] = (Vector2) {
+                    currentNode.x + (dX/dist) * rope->speed,
+                    currentNode.y + (dY/dist) * rope->speed
+                };
+            }
+        }
+    }
+}
+// Function to draw all the rope nodes, to be called from raylib loop
+void drawRopeNodes(Rope* rope){
+    for(int n=0; n<rope->nodesAmount; n++){
+        Vector2 currentNode = rope->nodes[n];
+        DrawPixelV(currentNode, WHITE);
+        DrawCircleLinesV(currentNode, nodeWidths[n], WHITE);
+        if(n!=0){
+            Vector2 previousNode = rope->nodes[n-1];
+            DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, WHITE);
+        }
+    }
+}
+// Function to make rope 
+Rope initRope(int nodesAmount, float linkLength, float speed, Vector2 startPos){
+    Rope r = {
+        .nodesAmount = nodesAmount,
+        .linkLength = linkLength,
+        .speed = speed
+    };
+
+    for(int i=0; i<nodesAmount; i++){
+        r.nodes[i] = startPos;
+    }
+
+    return r;
+}
 
 int main() {
     // Init window and set FPS to upscaled res (4x the Canvas)
@@ -51,12 +111,8 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     // Rope instantiate
-    Rope rope1 = {
-        .nodesAmount = 18, 
-        .linkLength = 9.0f,
-        .speed = 1.25f,
-        .nodes = {0}
-    };
+    Rope rope1 = initRope(18, 9.0f, 1.25f, (Vector2){100, 100});
+    Rope rope2 = initRope(18, 9.0f, 0.25f, (Vector2){50, 50});
 
     // Centering head node code commented for now
     // Set node[0] to be head position in the center
@@ -74,51 +130,12 @@ int main() {
                 GetMousePosition().y / SCALE - 5
             };
 
-            // Loop to calculate the positions of rope nodes
-            //!TODO: Need to see if code repetition can be dealth with here
-            for(int i=0; i<rope1.nodesAmount; i++){
-                if(i==0){
-                    // HEAD NODE
-                    // Calculate difference of HEADER and POINTER pos and distance
-                    Vector2 headNode = rope1.nodes[i];
-
-                    float dY = pointerPos.y - headNode.y;
-                    float dX = pointerPos.x - headNode.x;
-                    float dist = sqrtf(dY*dY + dX*dX);
-
-                    rope1.nodes[0] = (Vector2) {
-                        headNode.x + (dX/dist)*rope1.speed,
-                        headNode.y + (dY/dist)*rope1.speed    
-                    };
-                } else {
-                    // CHILDREN NODES
-                    Vector2 currentNode = rope1.nodes[i];
-                    Vector2 previousNode = rope1.nodes[i-1];
-
-                    float dY = previousNode.y - currentNode.y;
-                    float dX = previousNode.x - currentNode.x;
-                    float dist = sqrtf(dY*dY + dX*dX);
-
-                    if(dist > rope1.linkLength){
-                        rope1.nodes[i] = (Vector2) {
-                            currentNode.x + (dX/dist) * rope1.speed,
-                            currentNode.y + (dY/dist) * rope1.speed
-                        };
-                    }
-
-                }
-            }
-
-            // Draw current posiitions rope nodes 
-            for(int n=0; n<rope1.nodesAmount; n++){
-                Vector2 currentNode = rope1.nodes[n];
-                DrawPixelV(currentNode, WHITE);
-                DrawCircleLinesV(currentNode, nodeWidths[n], WHITE);
-                if(n!=0){
-                    Vector2 previousNode = rope1.nodes[n-1];
-                    DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, WHITE);
-                }
-            }
+            // Update nodes of rope 60 times per second
+            updateRopeNodes(&rope1, pointerPos);
+            updateRopeNodes(&rope2, pointerPos);
+            // Draw updated nodes 60 times per second 
+            drawRopeNodes(&rope1);
+            drawRopeNodes(&rope2);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
