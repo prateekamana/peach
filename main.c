@@ -7,6 +7,12 @@
 #define CANVAS_H 160
 #define SCALE 4
 
+typedef struct {
+    int nodes;
+    float linkLength;
+    float speed;
+} Rope;
+
 int main() {
     // Init window and set FPS to upscaled res (4x the Canvas)
     InitWindow(CANVAS_W * SCALE, CANVAS_H * SCALE, "Peach 🍑");
@@ -19,33 +25,52 @@ int main() {
 
     //Head properties
     Vector2 headPos = {CANVAS_W/2, CANVAS_H/2};
-    float speed = 0.75f;
+    Vector2 node1 = {headPos.x, headPos.y-2};
+
+    // Rope initialize //!TODO: need to change comment term, initialize doesnt seem to be c term 
+    Rope rope1 = {
+        .nodes = 2, 
+        .linkLength = 15.0f,
+        .speed = 0.75f
+    };
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
         // Draw at small canvas resolution first
         BeginTextureMode(canvasRenderTexture);
             ClearBackground(BLACK);
-
+            
             // Get correct position of mouse as canvas is SCALED down
             Vector2 pointerPos = {
                 GetMousePosition().x / SCALE - 5,
                 GetMousePosition().y / SCALE - 5
             };
 
-            // Draw current posiitions of head and pointer
+            // Draw current posiitions of head, node and pointer
             DrawPixel(headPos.x, headPos.y, WHITE);
+            DrawPixel(node1.x, node1.y, WHITE);
             DrawPixel(pointerPos.x, pointerPos.y, RED);
 
-            // Calculate difference of header and pointer pos and distance
+            // Calculate difference of HEADER and POINTER pos and distance
             // Thanks Pythagoras 
             float dY = pointerPos.y - headPos.y;
             float dX = pointerPos.x - headPos.x;
             float dist = sqrtf(dY*dY + dX*dX);
 
+            //Added single node for proof of concept of link length following logic
+            //!TODO: Iteratively draw pixel based on rope struct
+            float nodeDY = headPos.y - node1.y;
+            float nodeDX = headPos.x - node1.x;
+            float nodeDistance = sqrtf(nodeDY*nodeDY + nodeDX*nodeDX);
+
+            if(nodeDistance > rope1.linkLength){
+                node1.y += (nodeDY/nodeDistance) * rope1.speed;
+                node1.x += (nodeDX/nodeDistance) * rope1.speed;
+            }
+
             // update head position by normalizing the distance vector 
-            headPos.x += (dX/dist) * speed;
-            headPos.y += (dY/dist) * speed;
+            headPos.x += (dX/dist) * rope1.speed;
+            headPos.y += (dY/dist) * rope1.speed;
 
             //!LOGGING: can leave these commented for now
             // printf("dist = %f \n", dist);
