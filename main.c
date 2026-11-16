@@ -8,9 +8,12 @@
 #define SCALE 4
 
 typedef struct {
-    int nodes;
+    int nodesAmount;
     float linkLength;
     float speed;
+
+    //!TODO: Need to see how to make this array below dynamic
+    Vector2 nodes[108]; 
 } Rope;
 
 int main() {
@@ -23,16 +26,16 @@ int main() {
     //Nearest Neighbor filter for our canvas, maybe to handle upscaling !DOUBT
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
-    //Head properties
-    Vector2 headPos = {CANVAS_W/2, CANVAS_H/2};
-    Vector2 node1 = {headPos.x, headPos.y-2};
-
-    // Rope initialize //!TODO: need to change comment term, initialize doesnt seem to be c term 
+    // Rope instantiate
     Rope rope1 = {
-        .nodes = 2, 
-        .linkLength = 15.0f,
-        .speed = 0.75f
+        .nodesAmount = 84, 
+        .linkLength = 8.0f,
+        .speed = 1.25f,
+        .nodes = {0}
     };
+
+    // Set node[0] to be head position in the center
+    rope1.nodes[0] = (Vector2){CANVAS_W/2, CANVAS_H/2};
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
@@ -46,31 +49,46 @@ int main() {
                 GetMousePosition().y / SCALE - 5
             };
 
-            // Draw current posiitions of head, node and pointer
-            DrawPixel(headPos.x, headPos.y, WHITE);
-            DrawPixel(node1.x, node1.y, WHITE);
-            DrawPixel(pointerPos.x, pointerPos.y, RED);
+            // Loop to calculate the positions of rope nodes
+            //!TODO: Need to see if code repetition can be dealth with here
+            for(int i=0; i<rope1.nodesAmount; i++){
+                if(i==0){
+                    // HEAD NODE
+                    // Calculate difference of HEADER and POINTER pos and distance
+                    Vector2 headNode = rope1.nodes[i];
 
-            // Calculate difference of HEADER and POINTER pos and distance
-            // Thanks Pythagoras 
-            float dY = pointerPos.y - headPos.y;
-            float dX = pointerPos.x - headPos.x;
-            float dist = sqrtf(dY*dY + dX*dX);
+                    float dY = pointerPos.y - headNode.y;
+                    float dX = pointerPos.x - headNode.x;
+                    float dist = sqrtf(dY*dY + dX*dX);
 
-            //Added single node for proof of concept of link length following logic
-            //!TODO: Iteratively draw pixel based on rope struct
-            float nodeDY = headPos.y - node1.y;
-            float nodeDX = headPos.x - node1.x;
-            float nodeDistance = sqrtf(nodeDY*nodeDY + nodeDX*nodeDX);
+                    rope1.nodes[0] = (Vector2) {
+                        headNode.x + (dX/dist)*rope1.speed,
+                        headNode.y + (dY/dist)*rope1.speed    
+                    };
+                } else {
+                    // CHILDREN NODES
+                    Vector2 currentNode = rope1.nodes[i];
+                    Vector2 previousNode = rope1.nodes[i-1];
 
-            if(nodeDistance > rope1.linkLength){
-                node1.y += (nodeDY/nodeDistance) * rope1.speed;
-                node1.x += (nodeDX/nodeDistance) * rope1.speed;
+                    float dY = previousNode.y - currentNode.y;
+                    float dX = previousNode.x - currentNode.x;
+                    float dist = sqrtf(dY*dY + dX*dX);
+
+                    if(dist > rope1.linkLength){
+                        rope1.nodes[i] = (Vector2) {
+                            currentNode.x + (dX/dist) * rope1.speed,
+                            currentNode.y + (dY/dist) * rope1.speed
+                        };
+                    }
+
+                }
             }
 
-            // update head position by normalizing the distance vector 
-            headPos.x += (dX/dist) * rope1.speed;
-            headPos.y += (dY/dist) * rope1.speed;
+            // Draw current posiitions of head, node and pointer
+            for(int n=0; n<rope1.nodesAmount; n++){
+                DrawPixel(rope1.nodes[n].x, rope1.nodes[n].y, WHITE);
+            }
+            DrawPixel(pointerPos.x, pointerPos.y, RED);
 
             //!LOGGING: can leave these commented for now
             // printf("dist = %f \n", dist);
