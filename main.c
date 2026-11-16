@@ -109,7 +109,7 @@ int main() {
                 }
             }
 
-            // Draw current posiitions of head, node and pointer
+            // Draw current posiitions of head, nodes and pointer
             for(int n=0; n<rope1.nodesAmount; n++){
                 Vector2 currentNode = rope1.nodes[n];
                 DrawPixelV(currentNode, WHITE);
