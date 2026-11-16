@@ -20,12 +20,12 @@ typedef struct {
 //!TODO: Wonder if it's the best way to handle this.
 float nodeWidths[18] = {
     5.0f, //1
-    3.0f, //2
+    3.0f, //2 Arms 
     4.0f, //3
     5.0f, //4
     5.0f, //5
     5.0f, //6
-    4.5f, //7
+    4.5f, //7 Legs
     4.25f, //8
     4.0f, //9
     3.8f, //10
@@ -109,7 +109,7 @@ int main() {
                 }
             }
 
-            // Draw current posiitions of head, nodes and pointer
+            // Draw current posiitions rope nodes 
             for(int n=0; n<rope1.nodesAmount; n++){
                 Vector2 currentNode = rope1.nodes[n];
                 DrawPixelV(currentNode, WHITE);
@@ -119,6 +119,8 @@ int main() {
                     DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, WHITE);
                 }
             }
+
+            // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
 
             //!LOGGING: can leave these commented for now
