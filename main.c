@@ -3,18 +3,42 @@
 #include "raylib.h"
 
 // NES Resolution for canvas
-#define CANVAS_W 240
-#define CANVAS_H 160
-#define SCALE 4
+#define CANVAS_W 256
+#define CANVAS_H 224
+#define SCALE 3.5
+#define MAX_NODES 18
 
 typedef struct {
-    int nodesAmount;
+    int nodesAmount; // NEVER greater than 18
     float linkLength;
     float speed;
 
     //!TODO: Need to see how to make this array below dynamic
-    Vector2 nodes[108]; 
+    Vector2 nodes[MAX_NODES]; 
 } Rope;
+
+//!TODO: Wonder if it's the best way to handle this.
+float nodeWidths[18] = {
+    5.0f, //1
+    3.0f, //2
+    4.0f, //3
+    5.0f, //4
+    5.0f, //5
+    5.0f, //6
+    4.5f, //7
+    4.25f, //8
+    4.0f, //9
+    3.8f, //10
+    3.5f, //11
+    3.2f, //12
+    3.0f, //13
+    2.0f, //14
+    1.5f, //15
+    1.25f, //16
+    1.0f, //17
+    0.85f, //18
+};
+
 
 int main() {
     // Init window and set FPS to upscaled res (4x the Canvas)
@@ -28,8 +52,8 @@ int main() {
 
     // Rope instantiate
     Rope rope1 = {
-        .nodesAmount = 84, 
-        .linkLength = 8.0f,
+        .nodesAmount = 18, 
+        .linkLength = 9.0f,
         .speed = 1.25f,
         .nodes = {0}
     };
@@ -87,7 +111,13 @@ int main() {
 
             // Draw current posiitions of head, node and pointer
             for(int n=0; n<rope1.nodesAmount; n++){
-                DrawPixel(rope1.nodes[n].x, rope1.nodes[n].y, WHITE);
+                Vector2 currentNode = rope1.nodes[n];
+                DrawPixelV(currentNode, WHITE);
+                DrawCircleLinesV(currentNode, nodeWidths[n], WHITE);
+                if(n!=0){
+                    Vector2 previousNode = rope1.nodes[n-1];
+                    DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, WHITE);
+                }
             }
             DrawPixel(pointerPos.x, pointerPos.y, RED);
 
@@ -111,5 +141,6 @@ int main() {
 
     UnloadRenderTexture(canvasRenderTexture);
     CloseWindow();
+    
     return 0;
 }
