@@ -34,8 +34,9 @@ int main() {
         .nodes = {0}
     };
 
+    // Centering head node code commented for now
     // Set node[0] to be head position in the center
-    rope1.nodes[0] = (Vector2){CANVAS_W/2, CANVAS_H/2};
+    // rope1.nodes[0] = (Vector2){CANVAS_W/2, CANVAS_H/2};
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
