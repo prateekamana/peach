@@ -12,6 +12,7 @@ typedef struct {
     int nodesAmount; // NEVER greater than 18
     float linkLength;
     float speed;
+    Color color;
 
     //!TODO: Need to see how to make this array below dynamic
     Vector2 nodes[MAX_NODES]; 
@@ -77,20 +78,21 @@ void updateRopeNodes(Rope* rope, Vector2 targetPoint){
 void drawRopeNodes(Rope* rope){
     for(int n=0; n<rope->nodesAmount; n++){
         Vector2 currentNode = rope->nodes[n];
-        DrawPixelV(currentNode, WHITE);
-        DrawCircleLinesV(currentNode, nodeWidths[n], WHITE);
+        DrawPixelV(currentNode, rope->color);
+        DrawCircleLinesV(currentNode, nodeWidths[n], rope->color);
         if(n!=0){
             Vector2 previousNode = rope->nodes[n-1];
-            DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, WHITE);
+            DrawLine(currentNode.x, currentNode.y, previousNode.x, previousNode.y, rope->color);
         }
     }
 }
 // Function to make rope 
-Rope initRope(int nodesAmount, float linkLength, float speed, Vector2 startPos){
+Rope initRope(int nodesAmount, float linkLength, float speed, Color color, Vector2 startPos){
     Rope r = {
         .nodesAmount = nodesAmount,
         .linkLength = linkLength,
-        .speed = speed
+        .speed = speed,
+        .color = color
     };
 
     for(int i=0; i<nodesAmount; i++){
@@ -99,6 +101,11 @@ Rope initRope(int nodesAmount, float linkLength, float speed, Vector2 startPos){
 
     return r;
 }
+
+// Colors
+Color lightPink      = (Color){ 255, 228, 235, 255 }; // really light pink
+Color lightSageGreen = (Color){ 214, 232, 208, 255 }; // really light sage green
+
 
 int main() {
     // Init window and set FPS to upscaled res (4x the Canvas)
@@ -111,8 +118,8 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     // Rope instantiate
-    Rope rope1 = initRope(18, 9.0f, 1.25f, (Vector2){100, 100});
-    Rope rope2 = initRope(18, 9.0f, 0.25f, (Vector2){50, 50});
+    Rope rope1 = initRope(18, 9.0f, 1.25f, lightPink, (Vector2){100, 100});
+    Rope rope2 = initRope(18, 9.0f, 0.25f, lightSageGreen, (Vector2){50, 50});
 
     // Centering head node code commented for now
     // Set node[0] to be head position in the center
