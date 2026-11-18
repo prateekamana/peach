@@ -51,11 +51,12 @@ void updateRopeNodes(Rope* rope, Vector2 targetPoint){
             float dY = targetPoint.y - headNode.y;
             float dX = targetPoint.x - headNode.x;
             float dist = sqrtf(dY*dY + dX*dX);
-
-            rope->nodes[0] = (Vector2) {
-                headNode.x + (dX/dist)*rope->speed,
-                headNode.y + (dY/dist)*rope->speed    
-            };
+            if(dist > nodeWidths[i]){
+                rope->nodes[0] = (Vector2) {
+                    headNode.x + (dX/dist)*rope->speed,
+                    headNode.y + (dY/dist)*rope->speed    
+                };
+            }
         } else {
             // CHILDREN NODES
             Vector2 currentNode = rope->nodes[i];
@@ -86,7 +87,45 @@ void drawRopeNodes(Rope* rope){
         }
     }
 }
-// Function to make rope 
+
+void drawLegs(Rope* rope, int nodeNumber){
+    if(nodeNumber<2){
+        return;
+    }
+    else {
+        float legLength = 10.0f;
+        nodeNumber-=1;
+        Vector2 sourceNode = rope->nodes[nodeNumber];    // x1 y1
+        Vector2 targetNode = rope->nodes[nodeNumber-1];  // x2 y2
+        float dY = targetNode.y-sourceNode.y;
+        float dX = targetNode.x-sourceNode.x;
+
+        // float dist = sqrtf(dX*dX + dY*dY);
+
+        // Vector2 legVector = {
+            
+        // };
+        float angle =  atan2(dY, dX) + (M_PI / 4.0f);
+        float length = 10.0f;
+        printf("atan2 : %f\n", atan2f(dY, dX));
+        // angle = atan2(dY, dX);
+        printf("final angle: %f\n", angle);
+        printf("source : %f , %f \n ", sourceNode.x, sourceNode.y);
+        printf("target : %f , %f \n", sourceNode.x + sinf(angle) * length, sourceNode.y + cosf(angle) * length);
+
+        DrawLineV(
+            sourceNode,
+            (Vector2) {
+                sourceNode.x + cosf(angle) * length, //
+                sourceNode.y + sinf(angle) * length,
+            },
+            // targetNode,
+            RED
+        );
+    }
+}
+
+// Function to init/make rope 
 Rope initRope(int nodesAmount, float linkLength, float speed, Color color, Vector2 startPos){
     Rope r = {
         .nodesAmount = nodesAmount,
@@ -142,7 +181,8 @@ int main() {
             updateRopeNodes(&rope2, pointerPos);
             // Draw updated nodes 60 times per second 
             drawRopeNodes(&rope1);
-            drawRopeNodes(&rope2);
+            // drawRopeNodes(&rope2);
+            drawLegs(&rope1, 2);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
@@ -166,6 +206,7 @@ int main() {
 
 
     UnloadRenderTexture(canvasRenderTexture);
+    printf("cos %f \n", cosf(0.0f)) ;
     CloseWindow();
     
     return 0;
