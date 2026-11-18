@@ -61,7 +61,7 @@ void updateRopeNodes(Rope* rope, Vector2 targetPoint){
             // CHILDREN NODES
             Vector2 currentNode = rope->nodes[i];
             Vector2 previousNode = rope->nodes[i-1];
-
+            //!TODO: search by float dY and use the DRY principle to encapsulate code
             float dY = previousNode.y - currentNode.y;
             float dX = previousNode.x - currentNode.x;
             float dist = sqrtf(dY*dY + dX*dX);
@@ -88,40 +88,62 @@ void drawRopeNodes(Rope* rope){
     }
 }
 
-void drawLegs(Rope* rope, int nodeNumber){
+void drawLegs(Rope* rope, int nodeNumber, float legLength, float angle){
+    // First convert degrees to radians
+    angle = angle * DEG2RAD;
+    // just added this because in the parameter sectoin vscode was greying out leglength and ts pmo fr
+    legLength = legLength; 
+    // Radius to draw feet circles
+    float footRadius = 2.7f;
+
+    // If node = 1 that'd just be the head node, can't add legs
     if(nodeNumber<2){
         return;
     }
     else {
-        float legLength = 10.0f;
+        // Offset by -1 so that the correct node can be referenced (arrays start with 0 not 1)
         nodeNumber-=1;
-        Vector2 sourceNode = rope->nodes[nodeNumber];    // x1 y1
-        Vector2 targetNode = rope->nodes[nodeNumber-1];  // x2 y2
+        
+        // Source node is main leg node, target is the one ahead of it
+        Vector2 sourceNode = rope->nodes[nodeNumber];    
+        Vector2 targetNode = rope->nodes[nodeNumber-1];  
+        // Find the angle between source and target nodes
         float dY = targetNode.y-sourceNode.y;
         float dX = targetNode.x-sourceNode.x;
+        float dAngle =  atan2(dY, dX);
 
-        // float dist = sqrtf(dX*dX + dY*dY);
+        // Leg pos vector is calculated by first finding out the vector between the two nodes
+        // and then adding the offset angle to them, times leg length. 
+        Vector2 rightLegPos = {                
+            sourceNode.x + cosf(dAngle + angle) * legLength, 
+            sourceNode.y + sinf(dAngle + angle) * legLength
+        };
+        Vector2 leftLegPos = {                
+            sourceNode.x + cosf(dAngle - angle) * legLength, 
+            sourceNode.y + sinf(dAngle - angle) * legLength
+        };
 
-        // Vector2 legVector = {
-            
-        // };
-        float angle =  atan2(dY, dX) + (M_PI / 4.0f);
-        float length = 10.0f;
-        printf("atan2 : %f\n", atan2f(dY, dX));
-        // angle = atan2(dY, dX);
-        printf("final angle: %f\n", angle);
-        printf("source : %f , %f \n ", sourceNode.x, sourceNode.y);
-        printf("target : %f , %f \n", sourceNode.x + sinf(angle) * length, sourceNode.y + cosf(angle) * length);
-
+        // RIGHT LEG AND FOOT
         DrawLineV(
             sourceNode,
-            (Vector2) {
-                sourceNode.x + cosf(angle) * length, //
-                sourceNode.y + sinf(angle) * length,
-            },
-            // targetNode,
+            rightLegPos,
             RED
         );
+        DrawCircleV(rightLegPos, footRadius, RED);
+        
+        //LEFT LEG AND FOOT 
+        DrawLineV(
+            sourceNode,
+            leftLegPos,
+            RED
+        );
+        DrawCircleV(leftLegPos, footRadius, RED);
+
+        //!LOGGING: 
+        // printf("atan2 : %f\n", atan2f(dY, dX));
+        // printf("final angle: %f\n", angle);
+        // printf("source : %f , %f \n ", sourceNode.x, sourceNode.y);
+        // printf("target : %f , %f \n", sourceNode.x + sinf(angle) * length, sourceNode.y + cosf(angle) * length);
     }
 }
 
@@ -182,7 +204,8 @@ int main() {
             // Draw updated nodes 60 times per second 
             drawRopeNodes(&rope1);
             // drawRopeNodes(&rope2);
-            drawLegs(&rope1, 2);
+            drawLegs(&rope1, 2, 20.0f, 30);
+            drawLegs(&rope1, 7, 18.0f, 30);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
