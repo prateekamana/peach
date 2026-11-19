@@ -31,7 +31,7 @@ typedef struct {
     //!TODO: Need to see how to make these arrays below dynamic
     Leg legs[MAX_LEGS];
     Vector2 nodes[MAX_NODES]; 
-} Rope;
+} Tikku;
 
 //!TODO: Wonder if it's the best way to handle this.
 float nodeWidths[18] = {
@@ -56,7 +56,7 @@ float nodeWidths[18] = {
 };
 
 // Function to update rope nodes movement with respect to a target point 
-void updateRopeNodes(Rope* rope, Vector2 targetPoint){
+void updateTikkuNodes(Tikku* rope, Vector2 targetPoint){
     for(int i=0; i<rope->nodesAmount; i++){
         if(i==0){
             // HEAD NODE
@@ -91,7 +91,7 @@ void updateRopeNodes(Rope* rope, Vector2 targetPoint){
     }
 }
 // Function to draw all the rope nodes, to be called from raylib loop
-void drawRopeNodes(Rope* rope){
+void drawTikkuNodes(Tikku* rope){
     for(int n=0; n<rope->nodesAmount; n++){
         Vector2 currentNode = rope->nodes[n];
         DrawPixelV(currentNode, rope->color);
@@ -103,7 +103,7 @@ void drawRopeNodes(Rope* rope){
     }
 }
 
-void updateLegs(Rope* rope){
+void updateLegs(Tikku* rope){
     for(int legNumber=0; legNumber < rope->legsAmount; legNumber++){
         // Current leg in the for loop 
         Leg *currentLeg = &rope->legs[legNumber];
@@ -229,8 +229,8 @@ void updateLegs(Rope* rope){
 }
 
 // Function to init/make rope 
-Rope initRope(int nodesAmount, float linkLength, float speed, Color color, int legsAmount, Vector2 startPos){
-    Rope r = {
+Tikku initTikku(int nodesAmount, float linkLength, float speed, Color color, int legsAmount, Vector2 startPos){
+    Tikku r = {
         .nodesAmount = nodesAmount,
         .linkLength = linkLength,
         .speed = speed,
@@ -245,7 +245,7 @@ Rope initRope(int nodesAmount, float linkLength, float speed, Color color, int l
     return r;
 }
 
-void initLegs(Rope* r, float legLength, float angleOffset, int legNodes[]){
+void initLegs(Tikku* r, float legLength, float angleOffset, int legNodes[]){
     for(int i=0; i < r->legsAmount; i++){
         Leg l = {
             .targetPos={0},
@@ -282,15 +282,15 @@ int main() {
     //Nearest Neighbor filter for our canvas, maybe to handle upscaling !DOUBT
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
-    // Rope instantiate
-    Rope rope1 = initRope(18, 9.0f, 1.7f, lightPink, 4, (Vector2){100, 100});
-    initLegs(&rope1, 20.0f, 15.0f, (int[]){2, 7});
-    Rope rope2 = initRope(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
-    initLegs(&rope2, 22.0f, 18.0f, (int[]){2, 7});
+    // Tikku instantiate
+    Tikku tikku1 = initTikku(18, 9.0f, 1.7f, lightPink, 4, (Vector2){100, 100});
+    initLegs(&tikku1, 20.0f, 15.0f, (int[]){2, 7});
+    Tikku tikku2 = initTikku(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
+    initLegs(&tikku2, 22.0f, 18.0f, (int[]){2, 7});
 
     // Centering head node code commented for now
     // Set node[0] to be head position in the center
-    // rope1.nodes[0] = (Vector2){CANVAS_W/2, CANVAS_H/2};
+    // tikku1.nodes[0] = (Vector2){CANVAS_W/2, CANVAS_H/2};
 
     //RAYLIB LOOP
     while(!WindowShouldClose()){
@@ -305,14 +305,14 @@ int main() {
             };
 
             // Update nodes of rope 60 times per second
-            updateRopeNodes(&rope1, pointerPos);
-            updateRopeNodes(&rope2, pointerPos);
+            updateTikkuNodes(&tikku1, pointerPos);
+            updateTikkuNodes(&tikku2, pointerPos);
             // Draw updated nodes 60 times per second 
-            drawRopeNodes(&rope1);
-            drawRopeNodes(&rope2);
+            drawTikkuNodes(&tikku1);
+            drawTikkuNodes(&tikku2);
             //!TODO: Think whether there's any benefit at all to separating updateLegs() from drawLegs()
-            updateLegs(&rope1);
-            updateLegs(&rope2);
+            updateLegs(&tikku1);
+            updateLegs(&tikku2);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
