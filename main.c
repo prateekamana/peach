@@ -1,20 +1,35 @@
 #include<stdio.h>
 #include<math.h>
 #include "raylib.h"
+#include "raymath.h"
 
 // NES Resolution for canvas
 #define CANVAS_W 256
 #define CANVAS_H 224
 #define SCALE 3.5
 #define MAX_NODES 18
+#define MAX_LEGS 18
+#define BASE_FOOT_SPEED 4.0f
+
+typedef struct {
+    Vector2 targetPos;
+    Vector2 currentPos; 
+    float legLength;
+    float angleOffset;
+    int parentNodeNumber;
+    bool stepTriggered;
+    bool gaitFlag; 
+} Leg;
 
 typedef struct {
     int nodesAmount; // NEVER greater than 18
     float linkLength;
     float speed;
     Color color;
+    int legsAmount;
 
-    //!TODO: Need to see how to make this array below dynamic
+    //!TODO: Need to see how to make these arrays below dynamic
+    Leg legs[MAX_LEGS];
     Vector2 nodes[MAX_NODES]; 
 } Rope;
 
@@ -88,72 +103,132 @@ void drawRopeNodes(Rope* rope){
     }
 }
 
-void drawLegs(Rope* rope, int nodeNumber, float legLength, float angle){
-    // First convert degrees to radians
-    angle = angle * DEG2RAD;
-    // just added this because in the parameter sectoin vscode was greying out leglength and ts pmo fr
-    legLength = legLength; 
-    // Radius to draw feet circles
-    float footRadius = 2.7f;
+void updateLegs(Rope* rope){
+    for(int legNumber=0; legNumber < rope->legsAmount; legNumber++){
+        Leg *currentLeg = &rope->legs[legNumber];
+        Leg *theOtherLegOfCurrentPair;
 
-    // If node = 1 that'd just be the head node, can't add legs
-    if(nodeNumber<2){
-        return;
-    }
-    else {
-        // Offset by -1 so that the correct node can be referenced (arrays start with 0 not 1)
-        nodeNumber-=1;
-        
-        // Source node is main leg node, target is the one ahead of it
-        Vector2 sourceNode = rope->nodes[nodeNumber];    
-        Vector2 targetNode = rope->nodes[nodeNumber-1];  
-        // Find the angle between source and target nodes
-        float dY = targetNode.y-sourceNode.y;
-        float dX = targetNode.x-sourceNode.x;
-        float dAngle =  atan2(dY, dX);
+        bool isRightLeg = (legNumber % 2 == 0);
+        if(isRightLeg){
+            theOtherLegOfCurrentPair = &rope->legs[legNumber+1];
+        } else {
+            theOtherLegOfCurrentPair = &rope->legs[legNumber-1];
+        }
 
-        // Leg pos vector is calculated by first finding out the vector between the two nodes
-        // and then adding the offset angle to them, times leg length. 
-        Vector2 rightLegPos = {                
-            sourceNode.x + cosf(dAngle + angle) * legLength, 
-            sourceNode.y + sinf(dAngle + angle) * legLength
-        };
-        Vector2 leftLegPos = {                
-            sourceNode.x + cosf(dAngle - angle) * legLength, 
-            sourceNode.y + sinf(dAngle - angle) * legLength
-        };
+        Vector2 otherLegDistVect = Vector2Subtract(theOtherLegOfCurrentPair->targetPos, theOtherLegOfCurrentPair->currentPos);
+        float otherLegDist = sqrtf(otherLegDistVect.x*otherLegDistVect.x + otherLegDistVect.y*otherLegDistVect.y);
+        float otherLegDistFactor = otherLegDist / theOtherLegOfCurrentPair->legLength;
+        // 15/28 = 0.5, 28/28 = 1, 1/28 = 0.28
 
-        // RIGHT LEG AND FOOT
-        DrawLineV(
-            sourceNode,
-            rightLegPos,
-            RED
-        );
-        DrawCircleV(rightLegPos, footRadius, RED);
-        
-        //LEFT LEG AND FOOT 
-        DrawLineV(
-            sourceNode,
-            leftLegPos,
-            RED
-        );
-        DrawCircleV(leftLegPos, footRadius, RED);
 
-        //!LOGGING: 
-        // printf("atan2 : %f\n", atan2f(dY, dX));
-        // printf("final angle: %f\n", angle);
-        // printf("source : %f , %f \n ", sourceNode.x, sourceNode.y);
-        // printf("target : %f , %f \n", sourceNode.x + sinf(angle) * length, sourceNode.y + cosf(angle) * length);
+
+
+        float footSpeed = rope->speed*otherLegDistFactor * BASE_FOOT_SPEED;
+
+        // If node = 1 that'd just be the head node, can't add legs
+        if(currentLeg->parentNodeNumber < 2){
+            return;
+        } else {
+            // Offset by -1 so that the correct node can be referenced (arrays start with 0 not 1)
+            int nodeNumber = currentLeg->parentNodeNumber - 1;
+            
+            // Source node is main leg node, target is the one ahead of it
+            Vector2 sourceNode = rope->nodes[nodeNumber];    
+            Vector2 targetNode = rope->nodes[nodeNumber-1];  
+
+            // Find the angle between source and target nodes
+            float dY = targetNode.y-sourceNode.y;
+            float dX = targetNode.x-sourceNode.x;
+            float dAngle =  atan2(dY, dX);
+
+            // Leg pos vector is calculated by first finding out the vector between the two nodes
+            // and then adding the offset angle to them, times leg length. 
+
+            // This is the target pos for implementing walking
+            Vector2 legTargetPos = {                
+                sourceNode.x + cosf(dAngle + currentLeg->angleOffset) * currentLeg->legLength, 
+                sourceNode.y + sinf(dAngle + currentLeg->angleOffset) * currentLeg->legLength
+            };
+            
+            currentLeg->targetPos = legTargetPos;
+
+
+            if(currentLeg->currentPos.x == 0 &&  currentLeg->currentPos.y == 0){
+                currentLeg->currentPos = legTargetPos;
+            }
+
+            Vector2 currentLegTargetPos = currentLeg->targetPos;
+            Vector2 currentLegCurrentPos = currentLeg->currentPos;
+
+            float legDY = currentLegTargetPos.y - currentLegCurrentPos.y;
+            float legDX = currentLegTargetPos.x - currentLegCurrentPos.x;
+            float legDist = sqrtf(legDY*legDY + legDX*legDX);
+
+
+            //!LOGGING: Dist step and length
+            // DrawText(TextFormat("Dist: %.2f", legDist), 10, 10, 8, WHITE);
+            // DrawText(TextFormat("Step?: %i",  currentLeg->stepTriggered), 70, 10, 8, WHITE);
+            // DrawText(TextFormat("Len: %.2f",  currentLeg->legLength), 120, 10, 8, WHITE);
+
+
+            if(currentLeg->stepTriggered == false){
+                if(legDist >= currentLeg->legLength && currentLeg->gaitFlag == true){
+                    currentLeg->stepTriggered=true;
+                }
+
+            } else if (currentLeg->stepTriggered == true){
+                // pixel per frame distance exceeds how far it has to be, clamped to how far it has to be 
+                if(footSpeed > legDist) {
+                    footSpeed = legDist;
+                }
+                float xDisplacement = currentLeg->currentPos.x + (legDX/legDist) * footSpeed;
+                float yDisplacement = currentLeg->currentPos.y + (legDY/legDist) * footSpeed;
+                currentLeg->currentPos.x = xDisplacement;
+                currentLeg->currentPos.y = yDisplacement;
+
+                // Prevent overshooting
+                if(legDist <= footSpeed){
+                    currentLeg->currentPos = currentLeg->targetPos;
+                    currentLeg->stepTriggered = false;
+                    currentLeg->gaitFlag = false;
+                    theOtherLegOfCurrentPair->gaitFlag = true;
+                }
+            }
+
+            //!LOGGING: Misc
+            // printf("currentLeg->angleOffset: %f\n", currentLeg->angleOffset);
+            // printf("currentLeg->legLength: %f\n", currentLeg->legLength);
+            // printf("dAngle + currentLeg->angleOffset %f\n", dAngle + currentLeg->angleOffset);
+            // printf("cosf(dAngle + currentLeg->angleOffset): %f\n", cosf(dAngle + currentLeg->angleOffset));
+            
+            DrawLineV(
+                sourceNode,
+                currentLeg->currentPos,
+                RED
+            );
+            DrawCircleV(currentLeg->currentPos, 2.7f, RED);
+            
+            // Target foot pos
+            // DrawCircleV(currentLeg->targetPos, 2.7f, BLUE);
+
+            //!LOGGING: 
+            // printf("atan2 : %f\n", atan2f(dY, dX));
+            // printf("final angle: %f\n", angle);
+            // printf("source : %f , %f \n ", sourceNode.x, sourceNode.y);
+            // printf("target : %f , %f \n", sourceNode.x + cosf(dAngle + currentLeg->angleOffset) * currentLeg->legLength, sourceNode.y + sinf(dAngle + currentLeg->angleOffset) * currentLeg->legLength);
+  
+        }
     }
 }
 
 // Function to init/make rope 
-Rope initRope(int nodesAmount, float linkLength, float speed, Color color, Vector2 startPos){
+Rope initRope(int nodesAmount, float linkLength, float speed, Color color, int legsAmount, Vector2 startPos){
     Rope r = {
         .nodesAmount = nodesAmount,
         .linkLength = linkLength,
         .speed = speed,
-        .color = color
+        .color = color,
+        .legsAmount = legsAmount
     };
 
     for(int i=0; i<nodesAmount; i++){
@@ -161,6 +236,26 @@ Rope initRope(int nodesAmount, float linkLength, float speed, Color color, Vecto
     }
 
     return r;
+}
+
+void initLegs(Rope* r, float legLength, float angleOffset, int legNodes[]){
+    for(int i=0; i < r->legsAmount; i++){
+        Leg l = {
+            .targetPos={0},
+            .currentPos={0},
+            .legLength=legLength,
+            .stepTriggered=false
+        };
+
+        if(i%2){
+            l.angleOffset = -angleOffset * DEG2RAD;
+        } else {
+            l.angleOffset = +angleOffset * DEG2RAD;
+        }
+        l.gaitFlag = ((i/2) + (i%2)) % 2;
+        l.parentNodeNumber = legNodes[i/2];
+        r->legs[i] = l;
+    }
 }
 
 // Colors
@@ -179,8 +274,9 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     // Rope instantiate
-    Rope rope1 = initRope(18, 9.0f, 1.25f, lightPink, (Vector2){100, 100});
-    Rope rope2 = initRope(18, 9.0f, 0.25f, lightSageGreen, (Vector2){50, 50});
+    Rope rope1 = initRope(18, 9.0f, 1.7f, lightPink, 4, (Vector2){100, 100});
+    initLegs(&rope1, 20.0f, 15.0f, (int[]){2, 7});
+    Rope rope2 = initRope(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
 
     // Centering head node code commented for now
     // Set node[0] to be head position in the center
@@ -204,8 +300,9 @@ int main() {
             // Draw updated nodes 60 times per second 
             drawRopeNodes(&rope1);
             // drawRopeNodes(&rope2);
-            drawLegs(&rope1, 2, 20.0f, 30);
-            drawLegs(&rope1, 7, 18.0f, 30);
+            updateLegs(&rope1);
+            // drawLegs(&rope1, 2, 20.0f, 30);
+            // drawLegs(&rope1, 7, 18.0f, 30);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
