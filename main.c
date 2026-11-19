@@ -9,7 +9,7 @@
 #define SCALE 3.5
 #define MAX_NODES 18
 #define MAX_LEGS 18
-#define BASE_FOOT_SPEED 4.0f
+#define BASE_FOOT_SPEED 8.0f
 
 typedef struct {
     Vector2 targetPos;
@@ -105,25 +105,28 @@ void drawRopeNodes(Rope* rope){
 
 void updateLegs(Rope* rope){
     for(int legNumber=0; legNumber < rope->legsAmount; legNumber++){
+        // Current leg in the for loop 
         Leg *currentLeg = &rope->legs[legNumber];
-        Leg *theOtherLegOfCurrentPair;
 
-        bool isRightLeg = (legNumber % 2 == 0);
+        // The other leg of the current pair
+        Leg *theOtherLegOfCurrentPair;
+        bool isRightLeg = (legNumber % 2 == 0); // Our program draws first the right leg, then the left leg, so even ones are right leg
         if(isRightLeg){
+            // Right leg is first of the legs[] divided into two, therefore add 1 to it to reach the other leg
             theOtherLegOfCurrentPair = &rope->legs[legNumber+1];
         } else {
+            // Left leg is always the second of the legs[] divided into two, therefore subtract 1 
             theOtherLegOfCurrentPair = &rope->legs[legNumber-1];
         }
 
+        // Need to find how far the other leg is from its target, to adjust the current leg speed accordingly
         Vector2 otherLegDistVect = Vector2Subtract(theOtherLegOfCurrentPair->targetPos, theOtherLegOfCurrentPair->currentPos);
         float otherLegDist = sqrtf(otherLegDistVect.x*otherLegDistVect.x + otherLegDistVect.y*otherLegDistVect.y);
         float otherLegDistFactor = otherLegDist / theOtherLegOfCurrentPair->legLength;
-        // 15/28 = 0.5, 28/28 = 1, 1/28 = 0.28
 
-
-
-
-        float footSpeed = rope->speed*otherLegDistFactor * BASE_FOOT_SPEED;
+        // Range of otherLegDistFactor is 0 to 1 depending on how far the other leg is
+        // 1 when leg is farthest, 0 when leg is closest
+        float footSpeed = rope->speed * otherLegDistFactor * otherLegDistFactor * otherLegDistFactor * otherLegDistFactor * BASE_FOOT_SPEED;
 
         // If node = 1 that'd just be the head node, can't add legs
         if(currentLeg->parentNodeNumber < 2){
@@ -149,34 +152,33 @@ void updateLegs(Rope* rope){
                 sourceNode.x + cosf(dAngle + currentLeg->angleOffset) * currentLeg->legLength, 
                 sourceNode.y + sinf(dAngle + currentLeg->angleOffset) * currentLeg->legLength
             };
-            
+            // targetPos is being set 60 times per second
             currentLeg->targetPos = legTargetPos;
 
-
+            // When initialized, currentpos is 0, so the first frame of raylib sets the legs currentPos as targetPos, commenting this causes the current pos to go to top left corner (0,0) and then as walking happens it becomes alright
             if(currentLeg->currentPos.x == 0 &&  currentLeg->currentPos.y == 0){
                 currentLeg->currentPos = legTargetPos;
             }
 
+            // Find legDist between currentPos and currentTargetPos
             Vector2 currentLegTargetPos = currentLeg->targetPos;
             Vector2 currentLegCurrentPos = currentLeg->currentPos;
-
             float legDY = currentLegTargetPos.y - currentLegCurrentPos.y;
             float legDX = currentLegTargetPos.x - currentLegCurrentPos.x;
             float legDist = sqrtf(legDY*legDY + legDX*legDX);
 
-
-            //!LOGGING: Dist step and length
-            // DrawText(TextFormat("Dist: %.2f", legDist), 10, 10, 8, WHITE);
-            // DrawText(TextFormat("Step?: %i",  currentLeg->stepTriggered), 70, 10, 8, WHITE);
-            // DrawText(TextFormat("Len: %.2f",  currentLeg->legLength), 120, 10, 8, WHITE);
-
-
+            // If current step is gait enabled, 
+            // && distance has exceeded leg length,
+            // && stepTriggered is false, then mark stepTriggered to be true
             if(currentLeg->stepTriggered == false){
                 if(legDist >= currentLeg->legLength && currentLeg->gaitFlag == true){
                     currentLeg->stepTriggered=true;
                 }
 
-            } else if (currentLeg->stepTriggered == true){
+            } 
+            // If stepTriggered is true, calculate step and add step displacement to currentPos
+            //!TODO: Add more comments here
+            else if (currentLeg->stepTriggered == true){
                 // pixel per frame distance exceeds how far it has to be, clamped to how far it has to be 
                 if(footSpeed > legDist) {
                     footSpeed = legDist;
@@ -195,12 +197,6 @@ void updateLegs(Rope* rope){
                 }
             }
 
-            //!LOGGING: Misc
-            // printf("currentLeg->angleOffset: %f\n", currentLeg->angleOffset);
-            // printf("currentLeg->legLength: %f\n", currentLeg->legLength);
-            // printf("dAngle + currentLeg->angleOffset %f\n", dAngle + currentLeg->angleOffset);
-            // printf("cosf(dAngle + currentLeg->angleOffset): %f\n", cosf(dAngle + currentLeg->angleOffset));
-            
             DrawLineV(
                 sourceNode,
                 currentLeg->currentPos,
@@ -210,6 +206,17 @@ void updateLegs(Rope* rope){
             
             // Target foot pos
             // DrawCircleV(currentLeg->targetPos, 2.7f, BLUE);
+
+            //!LOGGING: Dist step and length
+            // DrawText(TextFormat("Dist: %.2f", legDist), 10, 10, 8, WHITE);
+            // DrawText(TextFormat("Step?: %i",  currentLeg->stepTriggered), 70, 10, 8, WHITE);
+            // DrawText(TextFormat("Len: %.2f",  currentLeg->legLength), 120, 10, 8, WHITE);
+
+            //!LOGGING: Misc
+            // printf("currentLeg->angleOffset: %f\n", currentLeg->angleOffset);
+            // printf("currentLeg->legLength: %f\n", currentLeg->legLength);
+            // printf("dAngle + currentLeg->angleOffset %f\n", dAngle + currentLeg->angleOffset);
+            // printf("cosf(dAngle + currentLeg->angleOffset): %f\n", cosf(dAngle + currentLeg->angleOffset));
 
             //!LOGGING: 
             // printf("atan2 : %f\n", atan2f(dY, dX));
