@@ -9,7 +9,7 @@
 #define SCALE 3.5
 #define MAX_NODES 18
 #define MAX_LEGS 18
-#define BASE_FOOT_SPEED 8.0f
+#define BASE_FOOT_SPEED 8.0f // this is multiplied with the distance factor of the other leg of the current pair to slow down the current leg or speed it up based on how far behind the other leg is lagging
 
 typedef struct {
     Vector2 targetPos;
@@ -268,6 +268,8 @@ void initLegs(Rope* r, float legLength, float angleOffset, int legNodes[]){
 // Colors
 Color lightPink      = (Color){ 255, 228, 235, 255 }; // really light pink
 Color lightSageGreen = (Color){ 214, 232, 208, 255 }; // really light sage green
+Color darkPink       = (Color){ 199,  36,  94, 255 }; // deep rose pink
+Color darkGreen      = (Color){  34,  84,  45, 255 }; // deep forest green
 
 
 int main() {
@@ -284,6 +286,7 @@ int main() {
     Rope rope1 = initRope(18, 9.0f, 1.7f, lightPink, 4, (Vector2){100, 100});
     initLegs(&rope1, 20.0f, 15.0f, (int[]){2, 7});
     Rope rope2 = initRope(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
+    initLegs(&rope2, 22.0f, 18.0f, (int[]){2, 7});
 
     // Centering head node code commented for now
     // Set node[0] to be head position in the center
@@ -306,10 +309,10 @@ int main() {
             updateRopeNodes(&rope2, pointerPos);
             // Draw updated nodes 60 times per second 
             drawRopeNodes(&rope1);
-            // drawRopeNodes(&rope2);
+            drawRopeNodes(&rope2);
+            //!TODO: Think whether there's any benefit at all to separating updateLegs() from drawLegs()
             updateLegs(&rope1);
-            // drawLegs(&rope1, 2, 20.0f, 30);
-            // drawLegs(&rope1, 7, 18.0f, 30);
+            updateLegs(&rope2);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
