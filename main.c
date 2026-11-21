@@ -10,6 +10,7 @@
 #define MAX_NODES 18
 #define MAX_LEGS 18
 #define BASE_FOOT_SPEED 8.0f // this is multiplied with the distance factor of the other leg of the current pair to slow down the current leg or speed it up based on how far behind the other leg is lagging
+#define BONE_1_RATIO 0.5f
 
 typedef struct {
     Vector2 targetPos;
@@ -62,7 +63,7 @@ void updateTikkuNodes(Tikku* rope, Vector2 targetPoint){
             // HEAD NODE
             // Calculate difference of HEADER and POINTER pos and distance
             Vector2 headNode = rope->nodes[i];
-            
+
             //!TODO: search by float dY and use the DRY principle to encapsulate code
             float dY = targetPoint.y - headNode.y; // How far head node is vertically from target 
             float dX = targetPoint.x - headNode.x; // How far head node is horizontally from target
@@ -198,11 +199,68 @@ void updateLegs(Tikku* rope){
                 }
             }
 
+            // Calculate elbow points and we'll draw those bones instead of directly drawing from source to current foot pos
+
+            Vector2 elbowPoint;
+            //!NOTE: Later I can implement variable leg length
+            float bone1Length=currentLeg->legLength * BONE_1_RATIO; // A
+            float bone2Length=currentLeg->legLength * (1.0f-BONE_1_RATIO); // B
+            float angleBetweenSourceNodeAndCurrentFootPos; // Alpha
+            float distBetweenSourceNodeAndCurrentFootPos; // R
+            float elbowAngle; // Beta Star of the show, everyonen else essembled for this guy
+            // sourceNode and currentLeg->currentPos
+            Vector2 currentFootVecMinusSourceNode = Vector2Subtract(currentLeg->currentPos, sourceNode);
+            angleBetweenSourceNodeAndCurrentFootPos = atan2(currentFootVecMinusSourceNode.y, currentFootVecMinusSourceNode.x);
+            distBetweenSourceNodeAndCurrentFootPos = Vector2Distance (currentLeg->currentPos, sourceNode);
+
+            // I believe it's law of cosines or something idk, I derived it from first principles because Bone 1(A), Bone2 (B), the currentPos from sourceNode vector (R) make a "locked" triangle which can be used to find the elbow angle
+            if(isRightLeg){
+                elbowAngle = angleBetweenSourceNodeAndCurrentFootPos + acosf(
+                    (bone1Length*bone1Length + 
+                    distBetweenSourceNodeAndCurrentFootPos*distBetweenSourceNodeAndCurrentFootPos -
+                    bone2Length * bone2Length) /
+                    (2 * bone1Length * distBetweenSourceNodeAndCurrentFootPos)
+                );
+            } else {
+                elbowAngle = angleBetweenSourceNodeAndCurrentFootPos - acosf(
+                    (bone1Length*bone1Length + 
+                    distBetweenSourceNodeAndCurrentFootPos*distBetweenSourceNodeAndCurrentFootPos -
+                    bone2Length * bone2Length) /
+                    (2 * bone1Length * distBetweenSourceNodeAndCurrentFootPos)
+                );
+            }
+            // if(isRightLeg){
+            //     elbowAngle = elbowAngle + M_PI/2;
+            // }
+            
+            if(isRightLeg){
+                elbowPoint = (Vector2) {
+                    sourceNode.x + cos(elbowAngle) * bone1Length,
+                    sourceNode.y + sin(elbowAngle) * bone1Length
+                };
+            } else {
+                elbowPoint = (Vector2) {
+                    sourceNode.x + cos(elbowAngle) * bone1Length,
+                    sourceNode.y + sin(elbowAngle) * bone1Length
+                };
+            }
+
             DrawLineV(
                 sourceNode,
+                elbowPoint,
+                RED
+            );
+
+            DrawLineV(
+                elbowPoint,
                 currentLeg->currentPos,
                 RED
             );
+
+            // DrawPixelV(
+            //     elbowPoint,
+            //     RED
+            // );
             DrawCircleV(currentLeg->currentPos, 2.7f, RED);
             
             // Target foot pos
@@ -255,10 +313,13 @@ void initLegs(Tikku* r, float legLength, float angleOffset, int legNodes[]){
             .stepTriggered=false
         };
 
-        if(i%2){
-            l.angleOffset = -angleOffset * DEG2RAD;
-        } else {
+        // Right leg, add angle
+        if(i%2 == 0){
             l.angleOffset = +angleOffset * DEG2RAD;
+        } 
+        // Left leg, subtract angle
+        else {
+            l.angleOffset = -angleOffset * DEG2RAD;
         }
         l.gaitFlag = ((i/2) + (i%2)) % 2;
         l.parentNodeNumber = legNodes[i/2];
@@ -284,8 +345,8 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     // Tikku instantiate
-    Tikku tikku1 = initTikku(18, 9.0f, 1.7f, lightPink, 4, (Vector2){100, 100});
-    initLegs(&tikku1, 20.0f, 15.0f, (int[]){2, 7});
+    Tikku tikku1 = initTikku(18, 9.0f, 1.0f, lightPink, 4, (Vector2){100, 100});
+    initLegs(&tikku1, 16.0f, 30.0f, (int[]){2, 7});
     Tikku tikku2 = initTikku(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
     initLegs(&tikku2, 22.0f, 18.0f, (int[]){2, 7});
 
@@ -310,10 +371,10 @@ int main() {
             updateTikkuNodes(&tikku2, pointerPos);
             // Draw updated nodes 60 times per second 
             drawTikkuNodes(&tikku1);
-            drawTikkuNodes(&tikku2);
+            // drawTikkuNodes(&tikku2);
             //!TODO: Think whether there's any benefit at all to separating updateLegs() from drawLegs()
             updateLegs(&tikku1);
-            updateLegs(&tikku2);
+            // updateLegs(&tikku2);
 
             // Draw Mouse Pointer
             DrawPixel(pointerPos.x, pointerPos.y, RED);
