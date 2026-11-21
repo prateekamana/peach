@@ -62,21 +62,22 @@ void updateTikkuNodes(Tikku* rope, Vector2 targetPoint){
             // HEAD NODE
             // Calculate difference of HEADER and POINTER pos and distance
             Vector2 headNode = rope->nodes[i];
-
-            float dY = targetPoint.y - headNode.y;
-            float dX = targetPoint.x - headNode.x;
-            float dist = sqrtf(dY*dY + dX*dX);
+            
+            //!TODO: search by float dY and use the DRY principle to encapsulate code
+            float dY = targetPoint.y - headNode.y; // How far head node is vertically from target 
+            float dX = targetPoint.x - headNode.x; // How far head node is horizontally from target
+            float dist = sqrtf(dY*dY + dX*dX); // Distance between head node and target
             if(dist > nodeWidths[i]){
                 rope->nodes[0] = (Vector2) {
-                    headNode.x + (dX/dist)*rope->speed,
-                    headNode.y + (dY/dist)*rope->speed    
+                    headNode.x + (dX/dist)*rope->speed, // Normalized x displacement times speed
+                    headNode.y + (dY/dist)*rope->speed  // Normalized y displacement times speed
                 };
             }
         } else {
             // CHILDREN NODES
             Vector2 currentNode = rope->nodes[i];
             Vector2 previousNode = rope->nodes[i-1];
-            //!TODO: search by float dY and use the DRY principle to encapsulate code
+
             float dY = previousNode.y - currentNode.y;
             float dX = previousNode.x - currentNode.x;
             float dist = sqrtf(dY*dY + dX*dX);
