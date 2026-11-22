@@ -137,22 +137,25 @@ void updateLegs(Tikku* rope){
             // Offset by -1 so that the correct node can be referenced (arrays start with 0 not 1)
             int nodeNumber = currentLeg->parentNodeNumber - 1;
             
+            //=== SOURCE TARGET NODE AND ANGLE CALCULATIONS ===
             // Source node is main leg node, target is the one ahead of it
             Vector2 sourceNode = rope->nodes[nodeNumber];    
             Vector2 targetNode = rope->nodes[nodeNumber-1];  
 
-            // Find the angle between source and target nodes
-            float dY = targetNode.y-sourceNode.y;
-            float dX = targetNode.x-sourceNode.x;
-            float dAngle =  atan2(dY, dX);
+            // Find the angles between source and target nodes
+            Vector2 sourceToTargetVec = Vector2Subtract(targetNode, sourceNode);
+            Vector2 targetToSourceVec = Vector2Subtract(sourceNode, targetNode);
+            float sourceToTargetAngle =  atan2(sourceToTargetVec.y, sourceToTargetVec.x);
+            float targetToSourceAngle =  sourceToTargetAngle + M_PI;
 
+            //=== FINDING AND ASSIGNING TARGET POS OF CURRENT LEG ===
             // Leg pos vector is calculated by first finding out the vector between the two nodes
             // and then adding the offset angle to them, times leg length. 
 
             // This is the target pos for implementing walking
             Vector2 legTargetPos = {                
-                sourceNode.x + cosf(dAngle + currentLeg->angleOffset) * currentLeg->legLength, 
-                sourceNode.y + sinf(dAngle + currentLeg->angleOffset) * currentLeg->legLength
+                sourceNode.x + cosf(sourceToTargetAngle + currentLeg->angleOffset) * currentLeg->legLength, 
+                sourceNode.y + sinf(sourceToTargetAngle + currentLeg->angleOffset) * currentLeg->legLength
             };
             // targetPos is being set 60 times per second
             currentLeg->targetPos = legTargetPos;
@@ -162,6 +165,7 @@ void updateLegs(Tikku* rope){
                 currentLeg->currentPos = legTargetPos;
             }
 
+            //=== FIND legDist ===
             // Find legDist between currentPos and currentTargetPos
             Vector2 currentLegTargetPos = currentLeg->targetPos;
             Vector2 currentLegCurrentPos = currentLeg->currentPos;
@@ -169,6 +173,7 @@ void updateLegs(Tikku* rope){
             float legDX = currentLegTargetPos.x - currentLegCurrentPos.x;
             float legDist = sqrtf(legDY*legDY + legDX*legDX);
 
+            //=== GAIT AND STEP-TRIGGER LOGIC === 
             // If current step is gait enabled, 
             // && distance has exceeded leg length,
             // && stepTriggered is false, then mark stepTriggered to be true
@@ -199,8 +204,8 @@ void updateLegs(Tikku* rope){
                 }
             }
 
+            //=== ELBOW LOGIC ===
             // Calculate elbow points and we'll draw those bones instead of directly drawing from source to current foot pos
-
             Vector2 elbowPoint;
             //!NOTE: Later I can implement variable leg length
             float bone1Length=currentLeg->legLength * BONE_1_RATIO; // A
@@ -229,9 +234,6 @@ void updateLegs(Tikku* rope){
                     (2 * bone1Length * distBetweenSourceNodeAndCurrentFootPos)
                 );
             }
-            // if(isRightLeg){
-            //     elbowAngle = elbowAngle + M_PI/2;
-            // }
             
             if(isRightLeg){
                 elbowPoint = (Vector2) {
@@ -245,6 +247,7 @@ void updateLegs(Tikku* rope){
                 };
             }
 
+            //=== DRAW LOGIC ===
             DrawLineV(
                 sourceNode,
                 elbowPoint,
@@ -257,10 +260,6 @@ void updateLegs(Tikku* rope){
                 RED
             );
 
-            // DrawPixelV(
-            //     elbowPoint,
-            //     RED
-            // );
             DrawCircleV(currentLeg->currentPos, 2.7f, RED);
             
             // Target foot pos
@@ -345,7 +344,7 @@ int main() {
     SetTextureFilter(canvasRenderTexture.texture, TEXTURE_FILTER_POINT);
 
     // Tikku instantiate
-    Tikku tikku1 = initTikku(18, 9.0f, 1.0f, lightPink, 4, (Vector2){100, 100});
+    Tikku tikku1 = initTikku(18, 9.0f, 1.75f, lightPink, 4, (Vector2){100, 100});
     initLegs(&tikku1, 16.0f, 30.0f, (int[]){2, 7});
     Tikku tikku2 = initTikku(18, 9.0f, 0.25f, lightSageGreen, 4, (Vector2){50, 50});
     initLegs(&tikku2, 22.0f, 18.0f, (int[]){2, 7});
